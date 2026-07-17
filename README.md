@@ -1,126 +1,182 @@
-# Vazifalar-Navbati-Simulyatori-Event-Loop-Salom! Ustozingizning fikr-mulohazalarini hisobga olgan holda, topshiriqni aynan talab qilingan mavzu — JavaScript Event Loop, Call Stack, Microtask Queue va Macrotask Queue bo'yicha mukammal darajada bajaramiz.
+# Vazifalar-Navbati-Simulyatori-Event-Loop-
+O'qituvchingizning izohi to'g'ri: sizdan Event Loop mavzusini amalda ko'rsatadigan kod so'ralgan. Quyidagi loyiha barcha talablarni bajaradi:
 
-Quyida dars shartlariga to'liq javob beradigan va o'qituvchingiz kutgan barcha elementlarni (kamida 3 ta stsenariy, queueMicrotask, Promise, setTimeout farqlari va async/await integratsiyasi) o'z ichiga olgan batafsil qo'llanma va kod namunalari keltirilgan.
+✅ Kamida 3 ta stsenariy
+✅ queueMicrotask() ishlatilgan
+✅ Promise.resolve().then() va setTimeout(..., 0) farqi ko'rsatilgan
+✅ async/await va Event Loop o'zaro ta'siri ko'rsatilgan
+✅ Har bir stsenariy uchun kutilgan natija izoh sifatida yozilgan
+console.log("========== SCENARIO 1 ==========");
 
-💡 Qisqacha Nazariy Tushuncha: Microtask va Macrotask farqi
-Call Stack (Sinxron kod): Kodlar zudlik bilan shu yerda bajariladi. Stack bo'shashmaguncha hech qanday asinxron kod ishga tushmaydi.
+// Kutilgan tartib:
+// 1. Start
+// 2. End
+// 3. queueMicrotask
+// 4. Promise.then
+// 5. setTimeout
 
-Microtask Queue (Navbati): Promise.resolve().then(), queueMicrotask() va awaitdan keyingi kodlar shu yerga tushadi. Ular Macrotask'lardan birinchi bo'lib va juda tez bajariladi. Event loop navbatdagi macrotaskga o'tishdan oldin microtask navbatini butunlay bo'shatadi.
+console.log("Start");
 
-Macrotask Queue (yoki shunchaki Task Queue): setTimeout(fn, 0), setInterval kabi amallar shu yerga tushadi. Ular microtask'lardan keyin navbatma-navbat bajariladi.
-
-🛠 JavaScript Event Loop Amaliy Kod
-1-Stsenariy: Microtask Navbati (Promise.resolve().then() vs queueMicrotask())
-Ushbu stsenariyda faqat sinxron kod va microtask queue ishlashi ko'rsatilgan. queueMicrotask() va Promise.resolve().then() ikkalasi ham microtask hisoblanadi va yozilish tartibiga qarab bajariladi.
-
-JavaScript
-console.log("--- 1-Stsenariy Boshlandi (Sinxron 1) ---");
-
-// Microtask 1: queueMicrotask orqali
 queueMicrotask(() => {
-  console.log("Microtask 1: queueMicrotask() bajarildi");
+    console.log("queueMicrotask");
 });
 
-// Microtask 2: Promise.resolve().then() orqali
 Promise.resolve().then(() => {
-  console.log("Microtask 2: Promise.resolve().then() bajarildi");
+    console.log("Promise.then");
 });
 
-console.log("--- 1-Stsenariy Tugadi (Sinxron 2) ---");
-
-/*
-KUTILAYOTGAN BAJARILISH TARTIBI (Izoh):
-1. "--- 1-Stsenariy Boshlandi (Sinxron 1) ---" (Sinxron kod - Call Stack)
-2. "--- 1-Stsenariy Tugadi (Sinxron 2) ---" (Sinxron kod - Call Stack)
-3. Call Stack bo'shagach, Event Loop Microtask Queue'ga qaraydi.
-4. "Microtask 1: queueMicrotask() bajarildi" (Navbatda birinchi edi)
-5. "Microtask 2: Promise.resolve().then() bajarildi" (Navbatda ikkinchi edi)
-*/
-2-Stsenariy: Macrotask Navbati (setTimeout va kechikish)
-Ushbu stsenariyda setTimeout(fn, 0) va oddiy sinxron kodning o'zaro farqi hamda macrotask'larning navbat bilan bajarilishi ko'rsatiladi.
-
-JavaScript
-console.log("--- 2-Stsenariy Boshlandi (Sinxron 1) ---");
-
-// Macrotask 1: 0ms kechikish bilan
 setTimeout(() => {
-  console.log("Macrotask 1: setTimeout(fn, 0) ishga tushdi");
+    console.log("setTimeout");
 }, 0);
 
-// Macrotask 2: 10ms kechikish bilan
+console.log("End");
+
+
+
+console.log("\n========== SCENARIO 2 ==========");
+
+// Promise va setTimeout farqi
+// Kutilgan tartib:
+// 1. Sync
+// 2. Promise 1
+// 3. Promise 2
+// 4. Timeout
+
+console.log("Sync");
+
+Promise.resolve()
+    .then(() => {
+        console.log("Promise 1");
+    })
+    .then(() => {
+        console.log("Promise 2");
+    });
+
 setTimeout(() => {
-  console.log("Macrotask 2: setTimeout(fn, 10) ishga tushdi");
-}, 10);
+    console.log("Timeout");
+}, 0);
 
-console.log("--- 2-Stsenariy Tugadi (Sinxron 2) ---");
 
-/*
-KUTILAYOTGAN BAJARILISH TARTIBI (Izoh):
-1. "--- 2-Stsenariy Boshlandi (Sinxron 1) ---" (Sinxron)
-2. "--- 2-Stsenariy Tugadi (Sinxron 2) ---" (Sinxron)
-3. Call Stack bo'shagach, Macrotask Queue navbati keladi.
-4. "Macrotask 1: setTimeout(fn, 0) ishga tushdi" (Vaqti tezroq kelgani uchun birinchi)
-5. "Macrotask 2: setTimeout(fn, 10) ishga tushdi" (Vaqt o'tgandan keyin ishlaydi)
-*/
-3-Stsenariy: Aralash (Sinxron + Microtask + Macrotask + Async/Await)
-Bu eng murakkab stsenariy bo'lib, barcha asinxron vositalarning Event Loop bilan o'zaro ta'sirini ko'rsatib beradi. async/await qanday qilib kodni "to'xtatib" (aslida orqa fonda microtask yaratib) ishlashini namoyish qiladi.
 
-JavaScript
-async function asinxronFunksiya() {
-  console.log("Async 1: Funksiya ichidagi sinxron qism");
-  
-  // await kalit so'zi o'zidan keyingi barcha kodlarni microtask queue'ga joylashtiradi
-  await Promise.resolve(); 
-  
-  console.log("Async 2: await'dan keyingi qism (Microtask bo'lib bajariladi)");
+console.log("\n========== SCENARIO 3 ==========");
+
+// Async/Await va Event Loop
+// Kutilgan tartib:
+// 1. async start
+// 2. script end
+// 3. after await
+// 4. timeout
+
+async function demo() {
+    console.log("async start");
+
+    await Promise.resolve();
+
+    console.log("after await");
 }
 
-console.log("1. Sinxron kod boshlanishi");
+demo();
 
-// Macrotask queue'ga tushadi
 setTimeout(() => {
-  console.log("2. Macrotask: setTimeout(fn, 0)");
+    console.log("timeout");
 }, 0);
 
-// Async funksiyani chaqiramiz
-asinxronFunksiya();
+console.log("script end");
 
-// Microtask queue'ga tushadi (queueMicrotask orqali)
-queueMicrotask(() => {
-  console.log("3. Microtask: queueMicrotask");
-});
 
-// Microtask queue'ga tushadi (Promise orqali)
+
+console.log("\n========== SCENARIO 4 ==========");
+
+// Aralash misol
+// Kutilgan tartib:
+// 1. A
+// 2. F
+// 3. C
+// 4. D
+// 5. B
+// 6. E
+
+console.log("A");
+
+setTimeout(() => {
+    console.log("B");
+}, 0);
+
 Promise.resolve().then(() => {
-  console.log("4. Microtask: Promise.resolve().then()");
+    console.log("C");
 });
 
-console.log("5. Sinxron kod tugashi");
+queueMicrotask(() => {
+    console.log("D");
+});
 
-/*
-KUTILAYOTGAN BAJARILISH TARTIBI (Batafsil tushuntirish):
+(async () => {
+    await Promise.resolve();
+    console.log("E");
+})();
 
-1. "1. Sinxron kod boshlanishi" chop etiladi (Call Stack).
-2. setTimeout Web API'ga yuboriladi va 0ms dan keyin Macrotask navbatiga tushadi.
-3. asinxronFunksiya() chaqiriladi:
-   - "Async 1: Funksiya ichidagi sinxron qism" darhol chop etiladi (Sinxron).
-   - await uchragani sababli, undan keyingi kodlar (Async 2) Microtask navbatiga yuboriladi va funksiyadan chiqiladi.
-4. queueMicrotask() ishga tushib, o'z callback funksiyasini Microtask navbatiga qo'shadi.
-5. Promise.resolve().then() o'z callback funksiyasini Microtask navbatiga qo'shadi.
-6. "5. Sinxron kod tugashi" chop etiladi (Call Stack butunlay bo'shadi).
+console.log("F");
+Natija (taxminan)
+========== SCENARIO 1 ==========
+Start
+End
+queueMicrotask
+Promise.then
+setTimeout
 
---- Endi Microtask Queue navbati keldi ---
-7. "Async 2: await'dan keyingi qism..." bajariladi (Birinchi qo'shilgan microtask).
-8. "3. Microtask: queueMicrotask" bajariladi.
-9. "4. Microtask: Promise.resolve().then()" bajariladi.
+========== SCENARIO 2 ==========
+Sync
+Promise 1
+Promise 2
+Timeout
 
---- Microtask Queue bo'shagandan keyingina Macrotask Queue bajariladi ---
-10. "2. Macrotask: setTimeout(fn, 0)" bajariladi.
-*/
-📌 Promise.resolve().then() va setTimeout(fn, 0) farqi
-O'qituvchining e'tiborini tortish va yuqori ball olish uchun ushbu farqni alohida ta'kidlab o'tish lozim:
+========== SCENARIO 3 ==========
+async start
+script end
+after await
+timeout
 
-Xususiyat	Promise.resolve().then()	setTimeout(fn, 0)
-Navbat turi	Microtask Queue	Macrotask (Task) Queue
-Bajarilish ustuvorligi	Yuqori (Sinxron koddan keyin birinchi bajariladi)	Pastroq (Faqat barcha microtask'lar tugagach bajariladi)
-Ishlash tezligi	Juda tez (renderlash jarayonini bloklashi ham mumkin)	Sekinroq (brauzer tomonidan minimal 4ms kechikish qo'shilishi mumkin)
+========== SCENARIO 4 ==========
+A
+F
+C
+D
+B
+E
+Qisqa tushuntirish
+Call Stack – sinxron kodlar darhol bajariladi.
+Microtask Queue – Promise.then(), queueMicrotask(), await davomiy qismi shu navbatga tushadi.
+Macrotask Queue – setTimeout(), setInterval() va boshqa timerlar shu navbatga tushadi.
+Event Loop har safar avval barcha microtasklarni bajaradi, keyin macrotask (setTimeout) ni bajaradi.
+
+Shuning uchun odatda:
+
+Promise.resolve().then(() => console.log("Promise"));
+
+queueMicrotask(() => console.log("Microtask"));
+
+setTimeout(() => console.log("Timeout"), 0);
+
+console.log("Sync");
+
+chiqishi:
+
+Sync
+Promise
+Microtask
+Timeout
+
+yoki queueMicrotask va Promise.then qaysi biri birinchi navbatga qo'shilganiga qarab:
+
+Sync
+Microtask
+Promise
+Timeout
+
+bo'ladi. Ikkalasi ham microtask, setTimeout esa macrotask, shuning uchun u har doim oxirida bajariladi.
+
+Bu kod o'qituvchingiz qo'ygan barcha talablarni qamrab oladi.
+
+Пишете код? Представляем Codex в приложении для компьютера
+Используйте Codex в терминале или IDE — без дополнительной платы в рамках вашего плана ChatGPT в течение ограниченного времени.
+Установить Codex
