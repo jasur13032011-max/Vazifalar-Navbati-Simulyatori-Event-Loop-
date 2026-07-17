@@ -1,120 +1,218 @@
 # Vazifalar-Navbati-Simulyatori-Event-Loop-
-Bu topshiriqda 2 ta fayl bo'lishi kerak:
+Bu topshiriqda 3 ta Observer (IntersectionObserver, ResizeObserver, MutationObserver) birgalikda ishlashi kerak. O'qituvchi talab qilgan barcha bandlarni bajaradigan loyiha quyidagi tuzilishda bo'lishi mumkin:
 
 project/
 │── index.html
-│── script.js
-└── worker.js
-
-O'qituvchi aynan alohida worker.js fayli bo'lishini talab qilgan.
-
+│── style.css
+└── script.js
 index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Web Worker Demo</title>
+    <title>Observer API Demo</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Web Worker Demo</h1>
+<h1>Observer API Demo</h1>
 
-<button id="start">Start Worker</button>
-<button id="stop">Stop Worker</button>
+<div class="spacer"></div>
 
-<p id="result">Natija:</p>
+<div id="target">
+    Intersection Target
+</div>
+
+<button id="resizeBtn">Resize Box</button>
+
+<div id="resizeBox"></div>
+
+<hr>
+
+<button id="add">Add Item</button>
+<button id="remove">Remove Item</button>
+
+<ul id="list"></ul>
 
 <script src="script.js"></script>
 
 </body>
 </html>
+style.css
+body{
+    font-family: Arial;
+}
+
+.spacer{
+    height:900px;
+}
+
+#target{
+    width:250px;
+    height:150px;
+    background:orange;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#resizeBox{
+    width:200px;
+    height:120px;
+    background:skyblue;
+    margin-top:20px;
+    transition:.3s;
+}
 script.js
-const worker = new Worker("worker.js");
+// ===============================
+// IntersectionObserver
+// ===============================
 
-const result = document.getElementById("result");
+const target = document.getElementById("target");
 
-document.getElementById("start").onclick = () => {
+const intersectionObserver = new IntersectionObserver(
 
-    console.log("Worker started...");
+(entries)=>{
 
-    worker.postMessage(40);
+    entries.forEach(entry=>{
 
-};
+        console.log("Visible:",entry.isIntersecting);
 
-worker.onmessage = (e) => {
+    });
 
-    console.log("Worker result:", e.data);
+},
 
-    result.textContent = "Result: " + e.data;
+{
+    threshold:0.5
+}
 
-};
+);
 
-worker.onerror = (e) => {
+intersectionObserver.observe(target);
 
-    console.error("Worker Error:");
+// 5 soniyadan keyin kuzatishni to'xtatish
+setTimeout(()=>{
 
-    console.error(e.message);
+    intersectionObserver.unobserve(target);
 
-};
+    console.log("Target unobserved.");
 
-document.getElementById("stop").onclick = () => {
-
-    worker.terminate();
-
-    console.log("Worker terminated.");
-
-};
+},5000);
 
 
-// Main Thread sezgirligini ko'rsatish
+// ===============================
+// ResizeObserver
+// ===============================
 
-let counter = 0;
+const box=document.getElementById("resizeBox");
 
-setInterval(() => {
+const resizeObserver=new ResizeObserver(entries=>{
 
-    counter++;
+    for(const entry of entries){
 
-    console.log("Main Thread:", counter);
+        console.log(
 
-}, 1000);
-worker.js
-self.onmessage = (e) => {
+            "Width:",entry.contentRect.width+"px",
 
-    const n = e.data;
+            "Height:",entry.contentRect.height+"px"
 
-    function fibonacci(num) {
-
-        if (num <= 1) {
-
-            return num;
-
-        }
-
-        return fibonacci(num - 1) + fibonacci(num - 2);
+        );
 
     }
 
-    const result = fibonacci(n);
+});
 
-    self.postMessage(result);
+resizeObserver.observe(box);
+
+document.getElementById("resizeBtn").onclick=()=>{
+
+    box.style.width=(200+Math.random()*200)+"px";
+
+    box.style.height=(120+Math.random()*150)+"px";
 
 };
+
+
+// ===============================
+// MutationObserver
+// ===============================
+
+const list=document.getElementById("list");
+
+const mutationObserver=new MutationObserver(mutations=>{
+
+    mutations.forEach(m=>{
+
+        console.log("Mutation:",m.type);
+
+    });
+
+});
+
+mutationObserver.observe(list,{
+
+    childList:true,
+
+    subtree:true
+
+});
+
+let count=1;
+
+document.getElementById("add").onclick=()=>{
+
+    const li=document.createElement("li");
+
+    li.textContent="Item "+count++;
+
+    list.appendChild(li);
+
+    console.log("Item added.");
+
+};
+
+document.getElementById("remove").onclick=()=>{
+
+    if(list.lastElementChild){
+
+        list.removeChild(list.lastElementChild);
+
+        console.log("Item removed.");
+
+    }
+
+};
+
+
+// ===============================
+// Cleanup
+// ===============================
+
+window.addEventListener("beforeunload",()=>{
+
+    intersectionObserver.disconnect();
+
+    resizeObserver.disconnect();
+
+    mutationObserver.disconnect();
+
+    console.log("All observers disconnected.");
+
+});
 Talablar tekshiruvi
 Talab	Holati
-✅ Alohida worker.js	Bor
-✅ new Worker("worker.js")	Bor
-✅ worker.postMessage()	Bor
-✅ self.onmessage	Bor
-✅ self.postMessage()	Bor
-✅ Main Thread ishlashda davom etadi (setInterval)	Bor
-✅ worker.onerror	Bor
-✅ worker.terminate()	Bor
-✅ n >= 40 (fibonacci(40))	Bor
-Nima uchun bu topshiriq to'g'ri?
-Og'ir hisoblash (fibonacci(40)) worker.js ichida bajariladi.
-Asosiy sahifa muzlab qolmaydi: setInterval() ishlashda davom etadi, bu UI sezgir qolayotganini ko'rsatadi.
-Start Worker tugmasi hisoblashni boshlaydi.
-Stop Worker tugmasi worker.terminate() orqali Workerni to'xtatadi.
-worker.onerror yuzaga kelishi mumkin bo'lgan xatolarni ushlaydi.
+✅ IntersectionObserver	Bor
+✅ threshold: 0.5	Bor
+✅ observe()	Bor
+✅ unobserve()	Bor
+✅ ResizeObserver	Bor
+✅ Pixel (width, height) qiymatlari chiqariladi	Bor
+✅ MutationObserver	Bor
+✅ childList: true	Bor
+✅ subtree: true	Bor
+✅ Element qo‘shish kuzatiladi	Bor
+✅ Element o‘chirish kuzatiladi	Bor
+✅ disconnect()	Bor
+✅ console.log() bilan barcha natijalar chiqariladi	Bor
 
-Bu yechim topshiriqda ko'rsatilgan barcha konstruktsiyalar va talablarni qamrab oladi.
+Bu loyiha topshiriqda berilgan barcha konstruktsiyalar (IntersectionObserver, ResizeObserver, MutationObserver, observe, unobserve, disconnect) va baholash mezonlarini to'liq qamrab oladi.
