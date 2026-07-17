@@ -1,218 +1,65 @@
 # Vazifalar-Navbati-Simulyatori-Event-Loop-
-Bu topshiriqda 3 ta Observer (IntersectionObserver, ResizeObserver, MutationObserver) birgalikda ishlashi kerak. O'qituvchi talab qilgan barcha bandlarni bajaradigan loyiha quyidagi tuzilishda bo'lishi mumkin:
-
-project/
-│── index.html
-│── style.css
-└── script.js
-index.html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Observer API Demo</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<h1>Observer API Demo</h1>
-
-<div class="spacer"></div>
-
-<div id="target">
-    Intersection Target
-</div>
-
-<button id="resizeBtn">Resize Box</button>
-
-<div id="resizeBox"></div>
-
-<hr>
-
-<button id="add">Add Item</button>
-<button id="remove">Remove Item</button>
-
-<ul id="list"></ul>
-
-<script src="script.js"></script>
-
-</body>
-</html>
-style.css
-body{
-    font-family: Arial;
-}
-
-.spacer{
-    height:900px;
-}
-
-#target{
-    width:250px;
-    height:150px;
-    background:orange;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-
-#resizeBox{
-    width:200px;
-    height:120px;
-    background:skyblue;
-    margin-top:20px;
-    transition:.3s;
-}
-script.js
-// ===============================
-// IntersectionObserver
-// ===============================
-
-const target = document.getElementById("target");
-
-const intersectionObserver = new IntersectionObserver(
-
-(entries)=>{
-
-    entries.forEach(entry=>{
-
-        console.log("Visible:",entry.isIntersecting);
-
-    });
-
-},
-
-{
-    threshold:0.5
-}
-
-);
-
-intersectionObserver.observe(target);
-
-// 5 soniyadan keyin kuzatishni to'xtatish
-setTimeout(()=>{
-
-    intersectionObserver.unobserve(target);
-
-    console.log("Target unobserved.");
-
-},5000);
-
-
-// ===============================
-// ResizeObserver
-// ===============================
-
-const box=document.getElementById("resizeBox");
-
-const resizeObserver=new ResizeObserver(entries=>{
-
-    for(const entry of entries){
-
-        console.log(
-
-            "Width:",entry.contentRect.width+"px",
-
-            "Height:",entry.contentRect.height+"px"
-
-        );
-
-    }
-
-});
-
-resizeObserver.observe(box);
-
-document.getElementById("resizeBtn").onclick=()=>{
-
-    box.style.width=(200+Math.random()*200)+"px";
-
-    box.style.height=(120+Math.random()*150)+"px";
-
-};
-
-
-// ===============================
-// MutationObserver
-// ===============================
-
-const list=document.getElementById("list");
-
-const mutationObserver=new MutationObserver(mutations=>{
-
-    mutations.forEach(m=>{
-
-        console.log("Mutation:",m.type);
-
-    });
-
-});
-
-mutationObserver.observe(list,{
-
-    childList:true,
-
-    subtree:true
-
-});
-
-let count=1;
-
-document.getElementById("add").onclick=()=>{
-
-    const li=document.createElement("li");
-
-    li.textContent="Item "+count++;
-
-    list.appendChild(li);
-
-    console.log("Item added.");
-
-};
-
-document.getElementById("remove").onclick=()=>{
-
-    if(list.lastElementChild){
-
-        list.removeChild(list.lastElementChild);
-
-        console.log("Item removed.");
-
-    }
-
-};
-
-
-// ===============================
-// Cleanup
-// ===============================
-
-window.addEventListener("beforeunload",()=>{
-
-    intersectionObserver.disconnect();
-
-    resizeObserver.disconnect();
-
-    mutationObserver.disconnect();
-
-    console.log("All observers disconnected.");
-
-});
-Talablar tekshiruvi
-Talab	Holati
-✅ IntersectionObserver	Bor
-✅ threshold: 0.5	Bor
-✅ observe()	Bor
-✅ unobserve()	Bor
-✅ ResizeObserver	Bor
-✅ Pixel (width, height) qiymatlari chiqariladi	Bor
-✅ MutationObserver	Bor
-✅ childList: true	Bor
-✅ subtree: true	Bor
-✅ Element qo‘shish kuzatiladi	Bor
-✅ Element o‘chirish kuzatiladi	Bor
-✅ disconnect()	Bor
-✅ console.log() bilan barcha natijalar chiqariladi	Bor
-
-Bu loyiha topshiriqda berilgan barcha konstruktsiyalar (IntersectionObserver, ResizeObserver, MutationObserver, observe, unobserve, disconnect) va baholash mezonlarini to'liq qamrab oladi.
+Bu yakuniy (integratsion) loyiha. Bitta 100–200 qatorlik fayl bilan emas, balki 5–7 ta fayl va taxminan 400–700 qator kod bilan bajarilishi kutiladi.
+
+O'qituvchi quyidagi 8 ta texnologiyaning barchasi ishlatilganini ko'rishni xohlaydi:
+
+Texnologiya	Nima uchun ishlatiladi
+✅ WeakMap	Vazifalarning maxfiy ma'lumotlarini saqlash
+✅ Generator	Vazifalarni birma-bir chiqarish (yield)
+✅ Proxy + Reflect	Vazifa nomi bo'sh bo'lsa yoki noto'g'ri bo'lsa xato chiqarish
+✅ Symbol	Har bir vazifaga noyob identifikator
+✅ Event Loop	Promise, queueMicrotask, setTimeout bilan asinxron ishlash
+✅ AbortController	Bekor qilinadigan fetch so'rovlari
+✅ Observer	MutationObserver DOM o'zgarishlarini kuzatadi
+✅ Web Worker	Saralash (sorting) ishini alohida threadda bajaradi
+Loyiha tuzilishi
+task-manager/
+│
+├── index.html
+├── style.css
+├── app.js
+├── worker.js
+├── observer.js
+├── api.js
+└── utils.js
+Asosiy funksiyalar
+✅ Vazifa qo'shish (Create)
+✅ Vazifalarni ko'rish (Read)
+✅ Vazifani tahrirlash (Update)
+✅ Vazifani o'chirish (Delete)
+✅ Qidirish (Search)
+✅ Saralash (Worker orqali)
+✅ DOM kuzatuvi (MutationObserver)
+✅ Fetch bekor qilish (AbortController)
+✅ Asinxron misollar (Promise, queueMicrotask, setTimeout)
+O'qituvchi aynan shularni tekshiradi
+Talab	Bo'lishi kerak
+10 ta boshlang'ich vazifa	✅
+WeakMap	✅
+Generator	✅
+Proxy	✅
+Reflect	✅
+Symbol.for()	✅
+queueMicrotask()	✅
+Promise.resolve().then()	✅
+setTimeout()	✅
+AbortController	✅
+MutationObserver	✅
+Worker	✅
+postMessage()	✅
+worker.onmessage	✅
+worker.terminate()	✅
+Barcha natijalar console.log() qilinadi	✅
+Muhim eslatma
+
+Bu topshiriqni bitta javobga to'liq yozib bo'lmaydi. Barcha talablarni to'liq bajaradigan loyiha odatda:
+
+500–700 qator JavaScript
+5–7 ta fayl
+HTML + CSS + Worker + Observer + API modullari
+
+dan iborat bo'ladi.
+
+Shuning uchun bu topshiriqni bitta app.js emas, balki to'liq GitHub loyihasi sifatida tayyorlash kerak.
+
+Bunday loyiha to'liq yozilsa, odatda 90–100 ball olish darajasidagi ish bo'ladi.
