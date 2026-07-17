@@ -1,182 +1,173 @@
 # Vazifalar-Navbati-Simulyatori-Event-Loop-
-O'qituvchingizning izohi to'g'ri: sizdan Event Loop mavzusini amalda ko'rsatadigan kod so'ralgan. Quyidagi loyiha barcha talablarni bajaradi:
+Bu topshiriq immutability, structuredClone(), Object.freeze() va deep freeze haqida. Quyidagi kod o'qituvchi qo'ygan barcha talablarni bajaradi.
 
-✅ Kamida 3 ta stsenariy
-✅ queueMicrotask() ishlatilgan
-✅ Promise.resolve().then() va setTimeout(..., 0) farqi ko'rsatilgan
-✅ async/await va Event Loop o'zaro ta'siri ko'rsatilgan
-✅ Har bir stsenariy uchun kutilgan natija izoh sifatida yozilgan
-console.log("========== SCENARIO 1 ==========");
+// ===============================
+// IMMUTABLE STATE MANAGEMENT DEMO
+// ===============================
 
-// Kutilgan tartib:
-// 1. Start
-// 2. End
-// 3. queueMicrotask
-// 4. Promise.then
-// 5. setTimeout
+// Deep Freeze funksiyasi
+function deepFreeze(obj) {
+    Object.freeze(obj);
 
-console.log("Start");
+    Object.keys(obj).forEach((key) => {
+        const value = obj[key];
 
-queueMicrotask(() => {
-    console.log("queueMicrotask");
-});
-
-Promise.resolve().then(() => {
-    console.log("Promise.then");
-});
-
-setTimeout(() => {
-    console.log("setTimeout");
-}, 0);
-
-console.log("End");
-
-
-
-console.log("\n========== SCENARIO 2 ==========");
-
-// Promise va setTimeout farqi
-// Kutilgan tartib:
-// 1. Sync
-// 2. Promise 1
-// 3. Promise 2
-// 4. Timeout
-
-console.log("Sync");
-
-Promise.resolve()
-    .then(() => {
-        console.log("Promise 1");
-    })
-    .then(() => {
-        console.log("Promise 2");
+        if (
+            value &&
+            typeof value === "object" &&
+            !Object.isFrozen(value)
+        ) {
+            deepFreeze(value);
+        }
     });
 
-setTimeout(() => {
-    console.log("Timeout");
-}, 0);
-
-
-
-console.log("\n========== SCENARIO 3 ==========");
-
-// Async/Await va Event Loop
-// Kutilgan tartib:
-// 1. async start
-// 2. script end
-// 3. after await
-// 4. timeout
-
-async function demo() {
-    console.log("async start");
-
-    await Promise.resolve();
-
-    console.log("after await");
+    return obj;
 }
 
-demo();
+// Boshlang'ich state
+const state = {
+    user: {
+        name: "Jasur",
+        age: 18
+    },
+    items: [
+        { id: 1, name: "Book" },
+        { id: 2, name: "Phone" }
+    ]
+};
 
-setTimeout(() => {
-    console.log("timeout");
-}, 0);
+// structuredClone ishlatilmoqda
+const initialState = structuredClone(state);
 
-console.log("script end");
+// Deep Freeze
+deepFreeze(initialState);
+
+console.log("========== INITIAL STATE ==========");
+console.log(initialState);
+console.log("State muzlatildi:", Object.isFrozen(initialState));
+console.log("User muzlatildi:", Object.isFrozen(initialState.user));
+console.log("Items muzlatildi:", Object.isFrozen(initialState.items));
 
 
+// ======================================
+// updateState() (Mutation YO'Q)
+// ======================================
 
-console.log("\n========== SCENARIO 4 ==========");
+// Kutilgan natija:
+// Eski state o'zgarmaydi.
+// Yangi state qaytadi.
 
-// Aralash misol
-// Kutilgan tartib:
-// 1. A
-// 2. F
-// 3. C
-// 4. D
-// 5. B
-// 6. E
+function updateState(state, changes) {
+    return {
+        ...state,
+        ...changes
+    };
+}
 
-console.log("A");
-
-setTimeout(() => {
-    console.log("B");
-}, 0);
-
-Promise.resolve().then(() => {
-    console.log("C");
+const updatedState = updateState(initialState, {
+    status: "active"
 });
 
-queueMicrotask(() => {
-    console.log("D");
+console.log("\n========== UPDATE STATE ==========");
+console.log("Old:", initialState);
+console.log("New:", updatedState);
+
+
+// ======================================
+// addItem() (Immutable)
+// ======================================
+
+// Kutilgan natija:
+// Eski items o'zgarmaydi.
+// Yangi element qo'shilgan yangi array qaytadi.
+
+function addItem(state, item) {
+    return {
+        ...state,
+        items: [...state.items, item]
+    };
+}
+
+const stateAfterAdd = addItem(updatedState, {
+    id: 3,
+    name: "Laptop"
 });
 
-(async () => {
-    await Promise.resolve();
-    console.log("E");
-})();
+console.log("\n========== ADD ITEM ==========");
+console.log("Old:", updatedState.items);
+console.log("New:", stateAfterAdd.items);
 
-console.log("F");
-Natija (taxminan)
-========== SCENARIO 1 ==========
-Start
-End
-queueMicrotask
-Promise.then
-setTimeout
 
-========== SCENARIO 2 ==========
-Sync
-Promise 1
-Promise 2
-Timeout
+// ======================================
+// removeItem() (Immutable)
+// ======================================
 
-========== SCENARIO 3 ==========
-async start
-script end
-after await
-timeout
+// Kutilgan natija:
+// id=2 bo'lgan element o'chiriladi.
+// Eski array saqlanadi.
 
-========== SCENARIO 4 ==========
-A
-F
-C
-D
-B
-E
-Qisqa tushuntirish
-Call Stack – sinxron kodlar darhol bajariladi.
-Microtask Queue – Promise.then(), queueMicrotask(), await davomiy qismi shu navbatga tushadi.
-Macrotask Queue – setTimeout(), setInterval() va boshqa timerlar shu navbatga tushadi.
-Event Loop har safar avval barcha microtasklarni bajaradi, keyin macrotask (setTimeout) ni bajaradi.
+function removeItem(state, id) {
+    return {
+        ...state,
+        items: state.items.filter(item => item.id !== id)
+    };
+}
 
-Shuning uchun odatda:
+const stateAfterRemove = removeItem(stateAfterAdd, 2);
 
-Promise.resolve().then(() => console.log("Promise"));
+console.log("\n========== REMOVE ITEM ==========");
+console.log("Old:", stateAfterAdd.items);
+console.log("New:", stateAfterRemove.items);
 
-queueMicrotask(() => console.log("Microtask"));
 
-setTimeout(() => console.log("Timeout"), 0);
+// ======================================
+// structuredClone tekshiruvi
+// ======================================
 
-console.log("Sync");
+// Kutilgan natija:
+// Clone o'zgarsa ham original state o'zgarmaydi.
 
-chiqishi:
+const copied = structuredClone(stateAfterRemove);
 
-Sync
-Promise
-Microtask
-Timeout
+copied.user.name = "Ali";
 
-yoki queueMicrotask va Promise.then qaysi biri birinchi navbatga qo'shilganiga qarab:
+console.log("\n========== STRUCTURED CLONE ==========");
+console.log("Original:", stateAfterRemove.user.name);
+console.log("Clone:", copied.user.name);
 
-Sync
-Microtask
-Promise
-Timeout
 
-bo'ladi. Ikkalasi ham microtask, setTimeout esa macrotask, shuning uchun u har doim oxirida bajariladi.
+// ======================================
+// Freeze tekshiruvi
+// ======================================
 
-Bu kod o'qituvchingiz qo'ygan barcha talablarni qamrab oladi.
+// strict mode bo'lmasa xato chiqmasligi mumkin,
+// lekin qiymat o'zgarmaydi.
 
-Пишете код? Представляем Codex в приложении для компьютера
-Используйте Codex в терминале или IDE — без дополнительной платы в рамках вашего плана ChatGPT в течение ограниченного времени.
-Установить Codex
+console.log("\n========== FREEZE TEST ==========");
+
+try {
+    initialState.user.name = "Test";
+} catch (e) {
+    console.log("Freeze Error:", e.message);
+}
+
+console.log("Current Name:", initialState.user.name);
+
+
+// ======================================
+// Yakuniy natija
+// ======================================
+
+console.log("\n========== FINAL STATE ==========");
+console.log(stateAfterRemove);
+Bu kod quyidagi barcha talablarni bajaradi:
+✅ structuredClone() ishlatilgan (JSON.parse(JSON.stringify()) yo'q)
+✅ Object.freeze() ishlatilgan
+✅ Chuqur muzlatish (deepFreeze())
+✅ updateState() mutatsiya qilmaydi
+✅ addItem() immutable (...spread)
+✅ removeItem() immutable (filter())
+✅ Har bir bosqich console.log() bilan chiqarilgan
+✅ Har bir stsenariy uchun kutilgan natija izoh sifatida yozilgan
+
+Bu ko'rinishdagi yechim odatda topshiriq talablariga to'liq mos keladi.
