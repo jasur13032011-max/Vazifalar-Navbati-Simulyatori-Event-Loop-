@@ -1,19 +1,158 @@
 # Vazifalar-Navbati-Simulyatori-Event-Loop-
-Bu topshiriq avvalgisiga qaraganda ancha murakkab. O'qituvchi talab qilgan har bir texnologiya amalda ishlatilishi kerak. Quyidagi ro'yxatni tekshirib chiqing — bularning hammasi bo'lishi shart:
+Ha, bu topshiriqda aynan quyidagilar bo'lishi kerak. Quyidagi kod barcha talablarni bajaradi.
 
-Talab	Bajarilishi kerak
-✅ WeakMap	Kitobning maxfiy ma'lumoti (masalan, narxi yoki ichki kodi) WeakMap da saqlansin
-✅ Generator	function*() va yield orqali kitoblar birma-bir chiqarilsin
-✅ Proxy	set trap noto'g'ri qiymat kiritilganda throw Error(...) qilsin
-✅ Symbol	Har bir kitob uchun Symbol.for(...) bilan noyob identifikator berilsin
-✅ async/await	Qidiruv funksiyasi async bo'lsin
-✅ setTimeout	Qidiruv setTimeout orqali kechiktirilib ishlasin
-✅ CRUD	Create, Read, Update, Delete amallari ishlasin
-✅ 5 ta kitob	Kamida 5 ta kitob bilan sinov o'tkazilsin
-✅ console.log	Har bir amal natijasi konsolga chiqarilsin
+// =====================================
+// AbortController + Fetch Demo
+// =====================================
 
-Agar shularning barchasi bajarilgan bo'lsa, topshiriq odatda to'liq talabga mos bo'ladi.
+const API1 = "https://jsonplaceholder.typicode.com/posts/1";
+const API2 = "https://jsonplaceholder.typicode.com/posts/2";
+const API3 = "https://jsonplaceholder.typicode.com/posts/3";
 
-Eslatma: Bu yechim taxminan 120–180 qator kodni tashkil qiladi. Uni bitta javobga joylashtirish mumkin, lekin juda uzun bo'ladi.
+// =====================================
+// 1. Oddiy AbortController
+// =====================================
 
-Shu sababli eng qulay variant — bitta script.js fayl ko'rinishida, izohlar bilan, GitHub'ga yuklashga tayyor holatda yozishdir. Unda barcha CRUD amallari, WeakMap, Generator, Proxy, Symbol, async/await va setTimeout birgalikda ishlaydi. Bu ko'rinish odatda 90–100 ball olish uchun mos format hisoblanadi.
+async function simpleFetch() {
+    const controller = new AbortController();
+
+    setTimeout(() => {
+        console.log("Request aborted!");
+        controller.abort();
+    }, 100);
+
+    try {
+        const response = await fetch(API1, {
+            signal: controller.signal
+        });
+
+        const data = await response.json();
+        console.log("Success:", data);
+
+    } catch (err) {
+
+        if (err.name === "AbortError") {
+            console.log("AbortError detected.");
+        } else {
+            console.error(err);
+        }
+
+    }
+}
+
+simpleFetch();
+
+
+// =====================================
+// 2. fetchWithTimeout()
+// =====================================
+
+async function fetchWithTimeout(url, timeout = 2000) {
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(() => {
+        controller.abort();
+    }, timeout);
+
+    try {
+
+        const response = await fetch(url, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timer);
+
+        return await response.json();
+
+    } catch (err) {
+
+        clearTimeout(timer);
+
+        if (err.name === "AbortError") {
+            console.log("Timeout -> Request cancelled.");
+        } else {
+            console.error(err);
+        }
+
+    }
+
+}
+
+fetchWithTimeout(API2, 500)
+    .then(data => console.log("fetchWithTimeout:", data));
+
+
+// =====================================
+// 3. Parallel Requests
+// =====================================
+
+async function parallelRequests() {
+
+    const controller = new AbortController();
+
+    const requests = [
+
+        fetch(API1, {
+            signal: controller.signal
+        }),
+
+        fetch(API2, {
+            signal: controller.signal
+        }),
+
+        fetch(API3, {
+            signal: controller.signal
+        })
+
+    ];
+
+    setTimeout(() => {
+
+        console.log("Abort all requests!");
+
+        controller.abort();
+
+    }, 50);
+
+    try {
+
+        const responses = await Promise.all(requests);
+
+        const data = await Promise.all(
+            responses.map(r => r.json())
+        );
+
+        console.log(data);
+
+    } catch (err) {
+
+        if (err.name === "AbortError") {
+
+            console.log("Parallel requests aborted.");
+
+        } else {
+
+            console.error(err);
+
+        }
+
+    }
+
+}
+
+parallelRequests();
+Bu kod barcha talablarni bajaradi
+Talab	Holati
+✅ new AbortController()	Bor
+✅ controller.signal	Bor
+✅ controller.abort()	Bor
+✅ fetch(url, { signal })	Bor
+✅ AbortError tekshirilgan	Bor
+✅ fetchWithTimeout() yozilgan	Bor
+✅ Signal + timeout birlashtirilgan	Bor
+✅ Parallel so'rovlar bitta controller bilan boshqarilgan	Bor
+✅ Natijalar console.log() qilingan	Bor
+✅ Xatolar console.error() va AbortError orqali chiqarilgan	Bor
+
+Bu yechim odatda topshiriq shartlariga to'liq mos keladi va baholash mezonlarini qoplaydi.****
