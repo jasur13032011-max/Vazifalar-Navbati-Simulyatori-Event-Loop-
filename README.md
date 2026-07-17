@@ -1,158 +1,120 @@
 # Vazifalar-Navbati-Simulyatori-Event-Loop-
-Ha, bu topshiriqda aynan quyidagilar bo'lishi kerak. Quyidagi kod barcha talablarni bajaradi.
+Bu topshiriqda 2 ta fayl bo'lishi kerak:
 
-// =====================================
-// AbortController + Fetch Demo
-// =====================================
+project/
+│── index.html
+│── script.js
+└── worker.js
 
-const API1 = "https://jsonplaceholder.typicode.com/posts/1";
-const API2 = "https://jsonplaceholder.typicode.com/posts/2";
-const API3 = "https://jsonplaceholder.typicode.com/posts/3";
+O'qituvchi aynan alohida worker.js fayli bo'lishini talab qilgan.
 
-// =====================================
-// 1. Oddiy AbortController
-// =====================================
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Worker Demo</title>
+</head>
+<body>
 
-async function simpleFetch() {
-    const controller = new AbortController();
+<h1>Web Worker Demo</h1>
 
-    setTimeout(() => {
-        console.log("Request aborted!");
-        controller.abort();
-    }, 100);
+<button id="start">Start Worker</button>
+<button id="stop">Stop Worker</button>
 
-    try {
-        const response = await fetch(API1, {
-            signal: controller.signal
-        });
+<p id="result">Natija:</p>
 
-        const data = await response.json();
-        console.log("Success:", data);
+<script src="script.js"></script>
 
-    } catch (err) {
+</body>
+</html>
+script.js
+const worker = new Worker("worker.js");
 
-        if (err.name === "AbortError") {
-            console.log("AbortError detected.");
-        } else {
-            console.error(err);
-        }
+const result = document.getElementById("result");
 
-    }
-}
+document.getElementById("start").onclick = () => {
 
-simpleFetch();
+    console.log("Worker started...");
 
+    worker.postMessage(40);
 
-// =====================================
-// 2. fetchWithTimeout()
-// =====================================
+};
 
-async function fetchWithTimeout(url, timeout = 2000) {
+worker.onmessage = (e) => {
 
-    const controller = new AbortController();
+    console.log("Worker result:", e.data);
 
-    const timer = setTimeout(() => {
-        controller.abort();
-    }, timeout);
+    result.textContent = "Result: " + e.data;
 
-    try {
+};
 
-        const response = await fetch(url, {
-            signal: controller.signal
-        });
+worker.onerror = (e) => {
 
-        clearTimeout(timer);
+    console.error("Worker Error:");
 
-        return await response.json();
+    console.error(e.message);
 
-    } catch (err) {
+};
 
-        clearTimeout(timer);
+document.getElementById("stop").onclick = () => {
 
-        if (err.name === "AbortError") {
-            console.log("Timeout -> Request cancelled.");
-        } else {
-            console.error(err);
-        }
+    worker.terminate();
 
-    }
+    console.log("Worker terminated.");
 
-}
-
-fetchWithTimeout(API2, 500)
-    .then(data => console.log("fetchWithTimeout:", data));
+};
 
 
-// =====================================
-// 3. Parallel Requests
-// =====================================
+// Main Thread sezgirligini ko'rsatish
 
-async function parallelRequests() {
+let counter = 0;
 
-    const controller = new AbortController();
+setInterval(() => {
 
-    const requests = [
+    counter++;
 
-        fetch(API1, {
-            signal: controller.signal
-        }),
+    console.log("Main Thread:", counter);
 
-        fetch(API2, {
-            signal: controller.signal
-        }),
+}, 1000);
+worker.js
+self.onmessage = (e) => {
 
-        fetch(API3, {
-            signal: controller.signal
-        })
+    const n = e.data;
 
-    ];
+    function fibonacci(num) {
 
-    setTimeout(() => {
+        if (num <= 1) {
 
-        console.log("Abort all requests!");
-
-        controller.abort();
-
-    }, 50);
-
-    try {
-
-        const responses = await Promise.all(requests);
-
-        const data = await Promise.all(
-            responses.map(r => r.json())
-        );
-
-        console.log(data);
-
-    } catch (err) {
-
-        if (err.name === "AbortError") {
-
-            console.log("Parallel requests aborted.");
-
-        } else {
-
-            console.error(err);
+            return num;
 
         }
 
+        return fibonacci(num - 1) + fibonacci(num - 2);
+
     }
 
-}
+    const result = fibonacci(n);
 
-parallelRequests();
-Bu kod barcha talablarni bajaradi
+    self.postMessage(result);
+
+};
+Talablar tekshiruvi
 Talab	Holati
-✅ new AbortController()	Bor
-✅ controller.signal	Bor
-✅ controller.abort()	Bor
-✅ fetch(url, { signal })	Bor
-✅ AbortError tekshirilgan	Bor
-✅ fetchWithTimeout() yozilgan	Bor
-✅ Signal + timeout birlashtirilgan	Bor
-✅ Parallel so'rovlar bitta controller bilan boshqarilgan	Bor
-✅ Natijalar console.log() qilingan	Bor
-✅ Xatolar console.error() va AbortError orqali chiqarilgan	Bor
+✅ Alohida worker.js	Bor
+✅ new Worker("worker.js")	Bor
+✅ worker.postMessage()	Bor
+✅ self.onmessage	Bor
+✅ self.postMessage()	Bor
+✅ Main Thread ishlashda davom etadi (setInterval)	Bor
+✅ worker.onerror	Bor
+✅ worker.terminate()	Bor
+✅ n >= 40 (fibonacci(40))	Bor
+Nima uchun bu topshiriq to'g'ri?
+Og'ir hisoblash (fibonacci(40)) worker.js ichida bajariladi.
+Asosiy sahifa muzlab qolmaydi: setInterval() ishlashda davom etadi, bu UI sezgir qolayotganini ko'rsatadi.
+Start Worker tugmasi hisoblashni boshlaydi.
+Stop Worker tugmasi worker.terminate() orqali Workerni to'xtatadi.
+worker.onerror yuzaga kelishi mumkin bo'lgan xatolarni ushlaydi.
 
-Bu yechim odatda topshiriq shartlariga to'liq mos keladi va baholash mezonlarini qoplaydi.****
+Bu yechim topshiriqda ko'rsatilgan barcha konstruktsiyalar va talablarni qamrab oladi.
